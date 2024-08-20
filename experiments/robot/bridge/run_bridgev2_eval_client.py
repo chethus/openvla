@@ -5,7 +5,7 @@ Runs a model in a real-world Bridge V2 environment.
 
 Usage:
     # OpenVLA:
-    python experiments/robot/bridge/run_bridge_eval.py --model_family openvla --pretrained_checkpoint openvla/openvla-7b
+    python experiments/robot/bridge/run_bridgev2_eval_client.py --pretrained_checkpoint openvla/openvla-7b
 """
 
 import sys
@@ -40,7 +40,7 @@ class GenerateConfig:
     #################################################################################################################
     # Model-specific parameters
     #################################################################################################################
-    agent_host: str = "iliad9.stanford.edu"
+    agent_host: str = "iliad8.stanford.edu"
     agent_port: int = 8000
 
     #################################################################################################################

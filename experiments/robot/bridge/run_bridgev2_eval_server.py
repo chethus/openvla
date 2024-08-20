@@ -5,7 +5,7 @@ Runs a model in a real-world Bridge V2 environment.
 
 Usage:
     # OpenVLA:
-    python experiments/robot/bridge/run_bridgev2_eval.py --model_family openvla --pretrained_checkpoint openvla/openvla-7b
+    python experiments/robot/bridge/run_bridgev2_eval_server.py --pretrained_checkpoint openvla/openvla-7b
 """
 
 import sys
@@ -13,7 +13,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Union, Any
-
 import draccus
 
 # Append current directory so that interpreter can find experiments.robot
@@ -27,6 +26,8 @@ from experiments.robot.robot_utils import (
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+import json_numpy
+json_numpy.patch()
 
 
 @dataclass
