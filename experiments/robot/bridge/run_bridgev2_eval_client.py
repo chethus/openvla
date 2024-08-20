@@ -13,6 +13,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Union
 import requests
+import cv2
+from PIL import Image
 import json_numpy
 json_numpy.patch()
 
@@ -21,9 +23,11 @@ import draccus
 # Append current directory so that interpreter can find experiments.robot
 sys.path.append(".")
 from experiments.robot.bridge.bridgev2_utils import (
+    align_to_img,
     get_next_task_label,
     get_preprocessed_image,
     get_widowx_env,
+    iter_frames,
     refresh_obs,
     save_rollout_data,
     save_rollout_video,
@@ -93,6 +97,14 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
         # Reset environment
         obs, _ = env.reset()
 
+        if align_img_path := input("Align with observation?:\n"):
+            align_to_img(env, align_img_path)
+
+        if replace_gif_path := input("Replace images with gif images?\n"):
+            replace_frames = list(iter_frames(Image.open(replace_gif_path)))
+        else:
+            replace_frames = []
+
         # Setup
         t = 0
         step_duration = 1.0 / cfg.control_frequency
@@ -116,6 +128,8 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
 
                     # Refresh the camera image and proprioceptive state
                     obs = refresh_obs(obs, env)
+                    if replace_frames:
+                        obs["full_image"] = replace_frames.pop(0)
 
                     # Save full (not preprocessed) image for replay video
                     replay_images.append(obs["full_image"])
@@ -142,6 +156,9 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
                     print("action:", action)
                     obs, _, _, _, _ = env.step(action)
                     t += 1
+                    bgr_img = cv2.cvtColor(obs["full_image"], cv2.COLOR_RGB2BGR)
+                    cv2.imshow("img_view", bgr_img)
+                    cv2.waitKey(10)
 
             except (KeyboardInterrupt, Exception) as e:
                 if isinstance(e, KeyboardInterrupt):

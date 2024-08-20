@@ -4,6 +4,8 @@ import os
 import sys
 import time
 
+import cv2
+from PIL import Image
 import imageio
 import numpy as np
 import tensorflow as tf
@@ -131,3 +133,26 @@ def refresh_obs(obs, env):
     obs["image_primary"] = new_obs["image_primary"]
     obs["proprio"] = new_obs["proprio"]
     return obs
+
+def align_to_img(env, align_img_path):
+    align_img = np.array(Image.open(align_img_path))
+    key = None
+    while key != 27:
+        obs = env.get_observation()
+        blended_img = (0.7 * obs["full_image"] + 0.3 * align_img)
+        # blended_img = obs["full_image"]
+        blended_img = np.round(blended_img).astype(np.uint8)
+        bgr_img = cv2.cvtColor(blended_img, cv2.COLOR_RGB2BGR)
+        cv2.imshow("img_view", bgr_img)
+        key = cv2.waitKey(10)
+
+def iter_frames(im):
+    try:
+        i= 0
+        while 1:
+            im.seek(i)
+            imframe = np.array(im.copy().convert("RGB"))
+            yield imframe
+            i += 1
+    except EOFError:
+        pass
