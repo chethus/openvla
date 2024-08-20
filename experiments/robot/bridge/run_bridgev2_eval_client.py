@@ -11,8 +11,10 @@ Usage:
 import sys
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Dict, List, Union
+import requests
+import json_numpy
+json_numpy.patch()
 
 import draccus
 
@@ -26,11 +28,8 @@ from experiments.robot.bridge.bridgev2_utils import (
     save_rollout_data,
     save_rollout_video,
 )
-from experiments.robot.openvla_utils import get_processor
 from experiments.robot.robot_utils import (
-    get_action,
     get_image_resize_size,
-    get_model,
 )
 
 
@@ -41,18 +40,12 @@ class GenerateConfig:
     #################################################################################################################
     # Model-specific parameters
     #################################################################################################################
-    model_family: str = "openvla"                               # Model family
-    pretrained_checkpoint: Union[str, Path] = ""                # Pretrained checkpoint path
-    load_in_8bit: bool = False                                  # (For OpenVLA only) Load with 8-bit quantization
-    load_in_4bit: bool = False                                  # (For OpenVLA only) Load with 4-bit quantization
-
-    center_crop: bool = False                                   # Center crop? (if trained w/ random crop image aug)
+    agent_host: str = "iliad9.stanford.edu"
+    agent_port: int = 8000
 
     #################################################################################################################
     # WidowX environment-specific parameters
     #################################################################################################################
-    host_ip: str = "localhost"
-    port: int = 5556
 
     # Note: Setting initial orientation with a 30 degree offset, which makes the robot appear more natural
     init_ee_pos: List[float] = field(default_factory=lambda: [0.3, -0.09, 0.26])
@@ -80,22 +73,8 @@ class GenerateConfig:
 
 @draccus.wrap()
 def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
-    assert cfg.pretrained_checkpoint is not None, "cfg.pretrained_checkpoint must not be None!"
-    assert not cfg.center_crop, "`center_crop` should be disabled for Bridge evaluations!"
-
-    # [OpenVLA] Set action un-normalization key
-    cfg.unnorm_key = "bridge_orig"
-
-    # Load model
-    model = get_model(cfg)
-
-    # [OpenVLA] Get Hugging Face processor
-    processor = None
-    if cfg.model_family == "openvla":
-        processor = get_processor(cfg)
-
     # Initialize the WidowX environment
-    env = get_widowx_env(cfg, model)
+    env = get_widowx_env(cfg)
 
     # Get expected image dimensions
     resize_size = get_image_resize_size(cfg)
@@ -139,15 +118,14 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
 
                     # Get preprocessed image
                     obs["full_image"] = get_preprocessed_image(obs, resize_size)
+                    
 
-                    # Query model to get action
-                    action = get_action(
-                        cfg,
-                        model,
-                        obs,
-                        task_label,
-                        processor=processor,
-                    )
+                    action = requests.post(
+                    f"http://{cfg.agent_host}:{cfg.agent_port}/act",
+                    json={
+                        "obs": obs,
+                        "instruction": task_label,
+                    }).json()
 
                     # [If saving rollout data] Save preprocessed image, robot state, and action
                     if cfg.save_data:
