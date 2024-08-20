@@ -42,6 +42,10 @@ class GenerateConfig:
     #################################################################################################################
     agent_host: str = "iliad9.stanford.edu"
     agent_port: int = 8000
+    model_family: str = "openvla"
+
+    host_ip: str = "localhost"
+    port: int = 5556
 
     #################################################################################################################
     # WidowX environment-specific parameters
@@ -124,6 +128,7 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
                     f"http://{cfg.agent_host}:{cfg.agent_port}/act",
                     json={
                         "obs": obs,
+                        "image": obs["full_image"],
                         "instruction": task_label,
                     }).json()
 
