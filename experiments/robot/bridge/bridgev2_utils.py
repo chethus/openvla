@@ -4,14 +4,14 @@ import os
 import sys
 import time
 
-import imageio
+# import imageio
 import numpy as np
 import tensorflow as tf
 import torch
-from widowx_envs.widowx_env_service import WidowXClient, WidowXConfigs
+# from widowx_envs.widowx_env_service import WidowXClient, WidowXConfigs
 
 sys.path.append(".")
-from experiments.robot.bridge.widowx_env import WidowXGym
+# from experiments.robot.bridge.widowx_env import WidowXGym
 
 # Initialize important constants and pretty-printing mode in NumPy.
 ACTION_DIM = 7

@@ -13,6 +13,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Union
+import numpy as np
 
 import draccus
 
@@ -21,8 +22,8 @@ sys.path.append(".")
 from experiments.robot.bridge.bridgev2_utils import (
     get_next_task_label,
     get_preprocessed_image,
-    get_widowx_env,
-    refresh_obs,
+    # get_widowx_env,
+    # refresh_obs,
     save_rollout_data,
     save_rollout_video,
 )
@@ -70,6 +71,8 @@ class GenerateConfig:
     max_steps: int = 60                                         # Max number of timesteps per episode
     control_frequency: float = 5                                # WidowX control frequency
 
+    replay_path: str = None
+
     #################################################################################################################
     # Utils
     #################################################################################################################
@@ -95,7 +98,10 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
         processor = get_processor(cfg)
 
     # Initialize the WidowX environment
-    env = get_widowx_env(cfg, model)
+    # env = get_widowx_env(cfg, model)
+    replay = np.load(cfg.replay_path)
+    orig_images = list(replay["orig_images"])
+    actions = list(replay["actions"])
 
     # Get expected image dimensions
     resize_size = get_image_resize_size(cfg)
@@ -108,7 +114,7 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
         task_label = get_next_task_label(task_label)
 
         # Reset environment
-        obs, _ = env.reset()
+        # obs, _ = env.reset()
 
         # Setup
         t = 0
@@ -127,12 +133,13 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
             try:
                 curr_tstamp = time.time()
                 if curr_tstamp > last_tstamp + step_duration:
-                    print(f"t: {t}")
-                    print(f"Previous step elapsed time (sec): {curr_tstamp - last_tstamp:.2f}")
+                    # print(f"t: {t}")
+                    # print(f"Previous step elapsed time (sec): {curr_tstamp - last_tstamp:.2f}")
                     last_tstamp = time.time()
 
                     # Refresh the camera image and proprioceptive state
-                    obs = refresh_obs(obs, env)
+                    # obs = refresh_obs(obs, env)
+                    obs = {"full_image": orig_images.pop()}
 
                     # Save full (not preprocessed) image for replay video
                     replay_images.append(obs["full_image"])
@@ -148,6 +155,7 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
                         task_label,
                         processor=processor,
                     )
+                    print(np.linalg.norm(action - actions.pop()))
 
                     # [If saving rollout data] Save preprocessed image, robot state, and action
                     if cfg.save_data:
@@ -156,8 +164,8 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
                         rollout_actions.append(action)
 
                     # Execute action
-                    print("action:", action)
-                    obs, _, _, _, _ = env.step(action)
+                    # print("action:", action)
+                    # obs, _, _, _, _ = env.step(action)
                     t += 1
 
             except (KeyboardInterrupt, Exception) as e:
@@ -168,7 +176,7 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
                 break
 
         # Save a replay video of the episode
-        save_rollout_video(replay_images, episode_idx)
+        # save_rollout_video(replay_images, episode_idx)
 
         # [If saving rollout data] Save rollout data
         if cfg.save_data:
