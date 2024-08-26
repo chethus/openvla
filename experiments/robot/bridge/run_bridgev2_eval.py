@@ -139,7 +139,7 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
 
                     # Refresh the camera image and proprioceptive state
                     # obs = refresh_obs(obs, env)
-                    obs = {"full_image": orig_images.pop()}
+                    obs = {"full_image": orig_images.pop(0)}
 
                     # Save full (not preprocessed) image for replay video
                     replay_images.append(obs["full_image"])
@@ -155,7 +155,7 @@ def eval_model_in_bridge_env(cfg: GenerateConfig) -> None:
                         task_label,
                         processor=processor,
                     )
-                    print(np.linalg.norm(action - actions.pop()))
+                    print(np.linalg.norm(action - actions.pop(0)))
 
                     # [If saving rollout data] Save preprocessed image, robot state, and action
                     if cfg.save_data:
